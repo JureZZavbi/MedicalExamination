@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MedicalExamination.Controllers
@@ -14,6 +15,7 @@ namespace MedicalExamination.Controllers
         }      
 
         [HttpGet(Name = "GetDoctors")]
+        [Authorize]
         public IEnumerable<Doctor> GetDoctors()
         {
             List<Doctor>? doctors = null;
@@ -26,6 +28,7 @@ namespace MedicalExamination.Controllers
         }
 
         [HttpGet(Name = "GetDoctorsAvailableSlots")]
+        [Authorize]
         //TODO Check dates
         public IActionResult GetDoctorsAvailableSlots([FromQuery] int IdPatient, [FromQuery] int IdDoctor)
         {
@@ -45,6 +48,7 @@ namespace MedicalExamination.Controllers
         }
 
         [HttpPost(Name = "ReserveSlot")]
+        [Authorize]
         public IActionResult ReserveSlot([FromBody] TimeSlotRequest request)
         {
             request.SlotTime = TrimSecondsAndMilliseconds(request.SlotTime);
@@ -94,6 +98,7 @@ namespace MedicalExamination.Controllers
         }
 
         [HttpPost(Name = "CancelReservation")]
+        [Authorize]
         public IActionResult CancelReservation([FromBody] int IdTimeslot)
         {
             using (var context = new ExaminationDbContext())
@@ -114,6 +119,7 @@ namespace MedicalExamination.Controllers
         #region Doctor
 
         [HttpGet(Name = "GetFutureApointments")]
+        [Authorize]
         public IActionResult GetFutureApointments([FromQuery] int IdDoctor)
         {
             using (var context = new ExaminationDbContext())
@@ -146,6 +152,7 @@ namespace MedicalExamination.Controllers
         }
 
         [HttpPost(Name = "RemoveAppointment")]
+        [Authorize]
         public IActionResult RemoveAppointment([FromBody] TimeSlotRemoveRequest request)
         {
             //TODO consolidate common code
@@ -185,6 +192,7 @@ namespace MedicalExamination.Controllers
         }
 
         [HttpPost(Name = "UpdateSlotTime")]
+        [Authorize]
         public IActionResult UpdateSlotTime([FromBody] TimeSlotChangeRequest request )
         {
             //TODO consolidate common code
@@ -232,6 +240,7 @@ namespace MedicalExamination.Controllers
 
         #region Admin
         [HttpPost(Name = "RegisterNewPatient")]
+        [Authorize]
         public IActionResult RegisterNewPatient([FromBody] NewPatientRequest patient)
         {
             if (string.IsNullOrEmpty(patient.Name))
@@ -264,6 +273,7 @@ namespace MedicalExamination.Controllers
         }
 
         [HttpPost(Name = "RegisterNewDoctor")]
+        [Authorize]
         public IActionResult RegisterNewDoctor([FromBody] NewDoctorRequest doctor)
         {
             if (string.IsNullOrEmpty(doctor.Name))
