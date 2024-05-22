@@ -1,0 +1,17 @@
+Create DB
+
+C:\Users\Uporabnik\source\repos\MedicalExamination\MedicalExamination>dotnet ef migrations add InitialCreate
+Build started...
+Build succeeded.
+Done. To undo this action, use 'ef migrations remove'
+
+-----------------------------------------------------------------------------------------------------
+C:\Users\Uporabnik\source\repos\MedicalExamination\MedicalExamination>dotnet ef database update
+Build started...
+Build succeeded.
+Applying migration '20240521201007_InitialCreate'.
+Done.
+
+C:\Users\Uporabnik\source\repos\MedicalExamination\MedicalExamination>
+
+#######################################################################################################
