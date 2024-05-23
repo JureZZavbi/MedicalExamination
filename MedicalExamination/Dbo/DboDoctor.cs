@@ -10,6 +10,7 @@ namespace MedicalExamination
 
         public TimeOnly? StartShift{ get; set; }
         public TimeOnly? EndShift { get; set; }
+
         public Doctor GetDoctor() 
         {  
             return new Doctor() 

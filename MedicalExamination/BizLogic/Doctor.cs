@@ -36,10 +36,10 @@ namespace MedicalExamination
                 var endDt = today.ToDateTime(start.AddMinutes(Settings.SlotSize30Minutes));
                 var checkExisting = takenSlots.FirstOrDefault(x => x.StartTime == startDT);
                 if (checkExisting != null)
-                { 
-                    if(checkExisting.IdPatient == IdPatient)
+                {
+                    if (checkExisting.IdPatient == IdPatient)
                     {
-                        if(BookedTimeslots == null) BookedTimeslots = new List<TimeSlot>();
+                        if (BookedTimeslots == null) BookedTimeslots = new List<TimeSlot>();
                         BookedTimeslots.Add(new TimeSlot
                         {
                             Id = checkExisting.Id,
@@ -47,13 +47,15 @@ namespace MedicalExamination
                             EndTime = checkExisting.EndTime,
                         });
                     }
-                    continue; 
                 }
-                AvailableTimeslots.Add(new TimeSlot
+                else
                 {
-                    StartTime = startDT,
-                    EndTime = endDt,
-                });
+                    AvailableTimeslots.Add(new TimeSlot
+                    {
+                        StartTime = startDT,
+                        EndTime = endDt,
+                    });
+                }
                 start = endSlot;
                 endSlot = start.AddMinutes(Settings.SlotSize30Minutes);
             }

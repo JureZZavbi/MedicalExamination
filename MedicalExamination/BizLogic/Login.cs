@@ -1,13 +1,14 @@
-﻿namespace MedicalExamination.BizLogic
+﻿namespace MedicalExamination
 {
     public class User
     {
         public int Id { get; set; }
-        public string Username { get; set; }
-        public string Password { get; set; } // In a real application, never store plain text passwords
+        public string? Username { get; set; }
+        public string? Password { get; set; }
+        public UserType UserType { get; set; }
     }
 
-    public class LoginRequest
+    public class LoginReq
     {
         public string Username { get; set; }
         public string Password { get; set; }

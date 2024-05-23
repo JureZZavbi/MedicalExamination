@@ -1,6 +1,7 @@
 ﻿namespace MedicalExamination.Controllers
 {
-    using MedicalExamination.BizLogic;
+    using Microsoft.AspNetCore.Identity;
+    using Microsoft.AspNetCore.Identity.Data;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.IdentityModel.Tokens;
     using System.IdentityModel.Tokens.Jwt;
@@ -12,16 +13,17 @@
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _configuration;
+        private readonly IPasswordHasher<DboSecret> _passwordHasher;
 
         public AuthController(IConfiguration configuration)
         {
             _configuration = configuration;
+            _passwordHasher = new PasswordHasher<DboSecret>();
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginRequest loginRequest)
+        public IActionResult Login([FromBody] LoginReq loginRequest)
         {
-            // This is a dummy user validation. Replace it with your actual user validation logic.
             var user = ValidateUser(loginRequest.Username, loginRequest.Password);
             if (user == null)
             {
@@ -32,15 +34,24 @@
             return Ok(new LoginResponse { Token = token });
         }
 
-        private User ValidateUser(string username, string password)
+        private User? ValidateUser(string username, string password)
         {
-            // Replace this with your actual user validation logic
-            if (username == "test" && password == "password")
+            
+            using (var context = new ExaminationDbContext()) 
             {
-                return new User { Id = 1, Username = "test" };
-            }
+                var user = context.DboSecrets.SingleOrDefault(d => d.Username == username);
+                if (user == null)
+                {
+                    return null;
+                }
 
-            return null;
+                var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password ?? string.Empty, password);
+                if (verificationResult == PasswordVerificationResult.Failed)
+                {
+                    return null;
+                }
+                return new User { Id = user.Id, Username = user.Username, UserType = (UserType)user.UserType};
+            }
         }
 
         private string GenerateJwtToken(User user)
@@ -50,9 +61,9 @@
 
             var claims = new[]
             {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Username),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
+                new Claim(JwtRegisteredClaimNames.Sub, user.Username),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],

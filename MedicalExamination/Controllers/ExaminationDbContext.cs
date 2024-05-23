@@ -7,6 +7,7 @@ namespace MedicalExamination.Controllers
         public DbSet<DboDoctor> DboDoctors { get; set; }
         public DbSet<DboPatient> DboPatients { get; set; }
         public DbSet<DboTimeSlot> DboTimeSlots { get; set; }
+        public DbSet<DboSecret> DboSecrets { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
