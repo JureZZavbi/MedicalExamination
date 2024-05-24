@@ -24,7 +24,84 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"username\": \"<string>\",\n  \"password\": \"<string>\"\n}",
+									"raw": "{\n  \"username\": \"Mario\",\n  \"password\": \"MarioS\"\n}",
+									"options": {
+										"raw": {
+											"headerFamily": "json",
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/Auth/login",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"Auth",
+										"login"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "OK",
+									"originalRequest": {
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											},
+											{
+												"key": "Authorization",
+												"value": "Bearer <token>",
+												"description": "Added as a part of security scheme: bearer"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"username\": \"<string>\",\n  \"password\": \"<string>\"\n}",
+											"options": {
+												"raw": {
+													"headerFamily": "json",
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{baseUrl}}/Auth/login",
+											"host": [
+												"{{baseUrl}}"
+											],
+											"path": [
+												"Auth",
+												"login"
+											]
+										}
+									},
+									"status": "OK",
+									"code": 200,
+									"_postman_previewlanguage": "text",
+									"header": [],
+									"cookie": [],
+									"body": ""
+								}
+							]
+						},
+						{
+							"name": "/Auth/login_Doctor",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"username\": \"PetraKovac\",\n  \"password\": \"PetraK\"\n}",
 									"options": {
 										"raw": {
 											"headerFamily": "json",
@@ -172,7 +249,7 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{baseUrl}}/MedicalExamination/GetDoctorsAvailableSlots?IdDoctor=<integer>&SlotDate=<date>",
+									"raw": "{{baseUrl}}/MedicalExamination/GetDoctorsAvailableSlots?IdDoctor=5&SlotDate=2024-05-24",
 									"host": [
 										"{{baseUrl}}"
 									],
@@ -183,11 +260,11 @@
 									"query": [
 										{
 											"key": "IdDoctor",
-											"value": "<integer>"
+											"value": "5"
 										},
 										{
 											"key": "SlotDate",
-											"value": "<date>"
+											"value": "2024-05-24"
 										}
 									]
 								}
@@ -251,7 +328,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"doctorId\": \"<integer>\",\n  \"slotTime\": \"<dateTime>\"\n}",
+									"raw": "{\n  \"doctorId\": \"5\",\n  \"slotTime\": \"2024-05-24T12:00:00\"\n}",
 									"options": {
 										"raw": {
 											"headerFamily": "json",
@@ -333,7 +410,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"slotId\": \"<integer>\"\n}",
+									"raw": "{\n  \"slotId\": \"19\"\n}",
 									"options": {
 										"raw": {
 											"headerFamily": "json",
@@ -468,7 +545,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"timeSlotId\": \"<integer>\"\n}",
+									"raw": "{\n  \"timeSlotId\": \"18\"\n}",
 									"options": {
 										"raw": {
 											"headerFamily": "json",
@@ -550,7 +627,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"timeSlotId\": \"<integer>\",\n  \"slotTime\": \"<dateTime>\"\n}",
+									"raw": "{\n  \"timeSlotId\": \"17\",\n  \"slotTime\": \"2024-05-24T12:30:00\"\n}",
 									"options": {
 										"raw": {
 											"headerFamily": "json",
@@ -632,7 +709,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"username\": \"<string>\",\n  \"password\": \"<string>\",\n  \"name\": \"<string>\",\n  \"surname\": \"<string>\"\n}",
+									"raw": "{\n  \"username\": \"Mario\",\n  \"password\": \"MarioS\",\n  \"name\": \"Mario\",\n  \"surname\": \"Šmit\"\n}",
 									"options": {
 										"raw": {
 											"headerFamily": "json",
@@ -714,7 +791,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"username\": \"<string>\",\n  \"password\": \"<string>\",\n  \"name\": \"<string>\",\n  \"surname\": \"<string>\",\n  \"startShift\": \"<time>\",\n  \"endShift\": \"<time>\"\n}",
+									"raw": "{\n  \"username\": \"PetraKovac\",\n  \"password\": \"PetraK\",\n  \"name\": \"Petra\",\n  \"surname\": \"Kovac\",\n  \"startShift\": \"08:00:00\",\n  \"endShift\": \"16:00:00\"\n}",
 									"options": {
 										"raw": {
 											"headerFamily": "json",
@@ -787,7 +864,7 @@
 				"bearer": [
 					{
 						"key": "token",
-						"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBbmFIIiwianRpIjoiOGRjZmYyNTYtNzJjNC00Y2VjLWE1YzktMzgzMGU4YWRlMTk5IiwiZXhwIjoxNzE2NTM1NzY3LCJpc3MiOiJtZWRpY2FsX2V4YW1pbmF0aW9uX2RlbW9faXNzdWVyX2hlcmUiLCJhdWQiOiJ0ZXN0X2F1ZGllbmNlIn0.jywvnmGCpN5JZmDbrjDaJnb7SpJYVFujPbTea2Uro5U",
+						"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJQZXRyYUtvdmFjIiwianRpIjoiYmIyZWI2YTktYWRkOC00MGQxLTg2Y2QtZDQ5NzA3NDQ3M2ViIiwiZXhwIjoxNzE2NTQyMjc3LCJpc3MiOiJtZWRpY2FsX2V4YW1pbmF0aW9uX2RlbW9faXNzdWVyX2hlcmUiLCJhdWQiOiJ0ZXN0X2F1ZGllbmNlIn0.9ogICg5BI8MMzkswjUMdUdYxYaX0ZSzWqsNpxLPhXtE",
 						"type": "string"
 					}
 				]
