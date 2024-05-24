@@ -14,11 +14,11 @@ namespace MedicalExamination.Controllers
         private readonly IPasswordHasher<DboSecret> _passwordHasher;
         private readonly ExaminationDbContext _context;
 
-        public MedicalExaminationController(ILogger<MedicalExaminationController> logger)
+        public MedicalExaminationController(ILogger<MedicalExaminationController> logger, ExaminationDbContext context)
         {
             _logger = logger;
             _passwordHasher = new PasswordHasher<DboSecret>();
-            _context = new ExaminationDbContext();
+            _context = context;           
         }
        
         #region Patient
