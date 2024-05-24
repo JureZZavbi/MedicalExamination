@@ -14,11 +14,13 @@
     {
         private readonly IConfiguration _configuration;
         private readonly IPasswordHasher<DboSecret> _passwordHasher;
+        private readonly ExaminationDbContext _context;
 
-        public AuthController(IConfiguration configuration)
+        public AuthController(IConfiguration configuration, ExaminationDbContext context)
         {
             _configuration = configuration;
             _passwordHasher = new PasswordHasher<DboSecret>();
+            _context = context;
         }
 
         [HttpPost("login")]
@@ -36,22 +38,18 @@
 
         private User? ValidateUser(string username, string password)
         {
-            
-            using (var context = new ExaminationDbContext()) 
+            var user = _context.DboSecrets.SingleOrDefault(d => d.Username == username);
+            if (user == null)
             {
-                var user = context.DboSecrets.SingleOrDefault(d => d.Username == username);
-                if (user == null)
-                {
-                    return null;
-                }
-
-                var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password ?? string.Empty, password);
-                if (verificationResult == PasswordVerificationResult.Failed)
-                {
-                    return null;
-                }
-                return new User { Id = user.Id, Username = user.Username, UserType = (UserType)user.UserType};
+                return null;
             }
+
+            var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password ?? string.Empty, password);
+            if (verificationResult == PasswordVerificationResult.Failed)
+            {
+                return null;
+            }
+            return new User { Id = user.Id, Username = user.Username, UserType = (UserType)user.UserType};  
         }
 
         private string GenerateJwtToken(User user)
