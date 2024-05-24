@@ -1,1 +1,1 @@
-For instrunctions, please navigate to Medical examination API.pdf
+For instructions, please navigate to Medical examination API.pdf
