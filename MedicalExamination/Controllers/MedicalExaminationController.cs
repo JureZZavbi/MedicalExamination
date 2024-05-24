@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.Numerics;
+using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 
 namespace MedicalExamination.Controllers
@@ -42,16 +41,15 @@ namespace MedicalExamination.Controllers
 
         [HttpGet(Name = "GetDoctorsAvailableSlots")]
         [Authorize]
-        //todo it is not ok to accept only int as input parameter - not descriptive
-        //TODO create a new useer check if username exists
-        //TODO Check dates
-        //public IActionResult GetDoctorsAvailableSlots([FromQuery] int IdPatient, [FromQuery] int IdDoctor)
-        public IActionResult GetDoctorsAvailableSlots([FromQuery] int IdDoctor)
+        public IActionResult GetDoctorsAvailableSlots([FromQuery] int IdDoctor, [FromQuery] DateOnly SlotDate)
         {
-            var result =  GetPatientid(out var IdPatient);
-            if (result is not OkResult || IdPatient == null) 
-            { 
-                return result; 
+            var dateValid = CheckDateValidity(SlotDate);
+            if (dateValid is not OkResult) return dateValid;
+
+            var result = GetPatientid(out var IdPatient);
+            if (result is not OkResult || IdPatient == null)
+            {
+                return result;
             }
             var dboDoctor = _context.DboDoctors.FirstOrDefault(x => x.Id == IdDoctor);
             if (dboDoctor == null)
@@ -60,17 +58,18 @@ namespace MedicalExamination.Controllers
             }
             var doctor = dboDoctor.GetDoctor();
             var takenSlots = _context.DboTimeSlots.Where(x => x.IdDoctor == IdDoctor);
-            doctor.GetAvailableTimeslots(takenSlots, IdPatient.Value);
+            GetAvailableTimeslots(doctor, takenSlots, IdPatient.Value, SlotDate);
 
             return Ok(doctor);
         }
-
-       
 
         [HttpPost(Name = "ReserveSlot")]
         [Authorize]
         public IActionResult ReserveSlot([FromBody] TimeSlotRequest request)
         {
+            var dateValid = CheckDateValidity(DateOnly.FromDateTime(request.SlotTime));
+            if (dateValid is not OkResult) return dateValid;           
+
             var result = GetPatientid(out var IdPatient);
             if (result is not OkResult || IdPatient == null)
             {
@@ -82,7 +81,10 @@ namespace MedicalExamination.Controllers
             {
                 return BadRequest(new { Message = "Invalid time slot. Time must be on the hour or half-hour (e.g., 17:00 or 18:30)." });
             }
-        
+
+            if (request.SlotTime <= DateTime.Now) 
+                return BadRequest(new { Message = "Time slot is invalid (before current time)." }); ;
+
             var dboDoctor = _context.DboDoctors.FirstOrDefault(x => x.Id == request.DoctorId);
             if (dboDoctor == null)
             {
@@ -94,12 +96,19 @@ namespace MedicalExamination.Controllers
             {
                 return NotFound(new { Message = $"Patient with ID {IdPatient} was not found." });
             }
+            //Check if time slot is within doctor's working hours
+            if ((TimeOnly.FromDateTime(request.SlotTime) < dboDoctor.StartShift) ||
+                TimeOnly.FromDateTime(request.SlotTime.AddMinutes(Settings.SlotSize30Minutes)) >= dboDoctor.EndShift)
+            {
+                return NotFound(new { Message = $"No available slot found for Doctor with ID {request.DoctorId} at the specified time." });
+            }
 
             var slot = _context.DboTimeSlots.FirstOrDefault(x => x.IdDoctor == request.DoctorId && x.StartTime == request.SlotTime && x.IdPatient != IdPatient);
             if (slot != null)
             {
                 return NotFound(new { Message = $"No available slot found for Doctor with ID {request.DoctorId} at the specified time." });
             }
+
             slot = new DboTimeSlot()
             {
                 IdPatient = IdPatient.Value,
@@ -112,7 +121,7 @@ namespace MedicalExamination.Controllers
                 _context.DboTimeSlots.Add(slot);
                 _context.SaveChanges();
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 _logger.LogError(ex.Message);
                 return BadRequest("Saving failed.");
@@ -122,19 +131,34 @@ namespace MedicalExamination.Controllers
 
         [HttpPost(Name = "CancelReservation")]
         [Authorize]
-        public IActionResult CancelReservation([FromBody] int IdTimeslot)
+        public IActionResult CancelReservation([FromBody] TimeSlotCancelRequest cancelReq)
         {
-            //TODO Patient should only be allowed to delete his own timeslot
-            var slot = _context.DboTimeSlots.FirstOrDefault(x => x.Id == IdTimeslot);
+            var result = GetPatientid(out var IdPatient);
+            if (result is not OkResult || IdPatient == null)
+            {
+                return result;
+            }
+
+            var slot = _context.DboTimeSlots.FirstOrDefault(x => x.Id == cancelReq.SlotId);
             if (slot == null)
             {
-                return NotFound(new { Message = $"No reservation found for time slot with ID {IdTimeslot}" });
+                return NotFound(new { Message = $"No reservation found for time slot with ID {cancelReq.SlotId}" });
+            }
+
+           
+            if (slot.IdPatient != IdPatient)
+            {
+                return NotFound(new { Message = $"You are not allowed to delete appointments that are not your own!" });
             }
 
             _context.DboTimeSlots.Remove(slot);
             _context.SaveChanges();
 
             return Ok(new { Message = "Reservation canceled successfully." });
+        }
+        private static bool Weekend(DateOnly slotTime)
+        {
+            return slotTime.DayOfWeek == DayOfWeek.Saturday || slotTime.DayOfWeek == DayOfWeek.Sunday;
         }
         private IActionResult GetPatientid(out int? IdPatient)
         {
@@ -163,7 +187,80 @@ namespace MedicalExamination.Controllers
             }
             return Ok();
         }
+
+        private void GetAvailableTimeslots(Doctor doctor, IQueryable<DboTimeSlot> takenSlots, int IdPatient, DateOnly date)
+        {
+            var start = doctor.StartShift ?? new TimeOnly(0, 0);
+
+            start = AdjustForNow(date, start);
+
+            var end = doctor.EndShift ?? new TimeOnly(24, 0);
+            doctor.AvailableTimeslots = new List<TimeSlot>();
+
+            var endSlot = start.AddMinutes(Settings.SlotSize30Minutes);
+            while (endSlot <= end)
+            {
+                var startDT = date.ToDateTime(start);
+                var endDt = date.ToDateTime(start.AddMinutes(Settings.SlotSize30Minutes));
+                var checkExisting = takenSlots.FirstOrDefault(x => x.StartTime == startDT);
+                if (checkExisting != null)
+                {
+                    if (checkExisting.IdPatient == IdPatient)
+                    {
+                        if (doctor.BookedTimeslots == null) doctor.BookedTimeslots = new List<TimeSlot>();
+                        doctor.BookedTimeslots.Add(new TimeSlot
+                        {
+                            Id = checkExisting.Id,
+                            StartTime = checkExisting.StartTime,
+                            EndTime = checkExisting.EndTime,
+                        });
+                    }
+                }
+                else
+                {
+                    doctor.AvailableTimeslots.Add(new TimeSlot
+                    {
+                        StartTime = startDT,
+                        EndTime = endDt,
+                    });
+                }
+                start = endSlot;
+                endSlot = start.AddMinutes(Settings.SlotSize30Minutes);
+            }
+        }
+
+        private static TimeOnly AdjustForNow(DateOnly date, TimeOnly start)
+        {
+            if (date == DateOnly.FromDateTime(DateTime.Now) && start <= TimeOnly.FromDateTime(DateTime.Now))
+            {
+                start = TimeOnly.FromDateTime(DateTime.Now);
+                if (start.Minute < 30)
+                {
+                    start = new TimeOnly(start.Hour, Settings.SlotSize30Minutes);
+                }
+                else
+                {
+                    start = new TimeOnly(start.Hour + 1, 0);
+                }
+            }
+
+            return start;
+        }
+
+        private IActionResult CheckDateValidity(DateOnly SlotDate)
+        {
+            if (Weekend(SlotDate))
+            {
+                return BadRequest("No slots are available on weekends.");
+            }
+            if (DateOnly.FromDateTime(DateTime.Now) > SlotDate)
+            {
+                return BadRequest("Date is invalid");
+            }
+            return Ok();
+        }
         #endregion Patient
+
         #region Doctor
 
         [HttpGet(Name = "GetFutureApointments")]
@@ -202,10 +299,7 @@ namespace MedicalExamination.Controllers
         [Authorize]
         public IActionResult RemoveAppointment([FromBody] TimeSlotRemoveRequest request)
         {
-            //TODO consolidate common code
             //TODO verify slot doctor is the same doctor that is making the change
-            //TODO slot times do not obey doctor working hours
-            //TODO consolidate with remove request for patient - if it can be done - has authority
             var result = GetDoctorId(out var IdDoctor);
             if (result is not OkResult || IdDoctor == null)
             {
@@ -245,9 +339,7 @@ namespace MedicalExamination.Controllers
         [Authorize]
         public IActionResult UpdateSlotTime([FromBody] TimeSlotChangeRequest request )
         {
-            //TODO consolidate common code
             //TODO verify slot doctor is the same doctor that is making the change
-            //TODO slot times do not obey doctor working hours
             var result = GetDoctorId(out var IdDoctor);
             if (result is not OkResult || IdDoctor == null)
             {
@@ -317,7 +409,7 @@ namespace MedicalExamination.Controllers
         }
         #endregion Doctor
 
-        #region Admin
+        #region Public
         [HttpPost(Name = "RegisterNewPatient")]
        // [Authorize]
         public IActionResult RegisterNewPatient([FromBody] NewPatientRequest patient)
@@ -329,6 +421,10 @@ namespace MedicalExamination.Controllers
             if (string.IsNullOrEmpty(patient.Surname))
             {
                 return BadRequest(new { Message = "Patient surname missing!" });
+            }
+            if (UsernameExists(patient.Username))
+            {
+                return BadRequest(new { Message = "Username already exists!" });
             }
             var dboPatient = new DboPatient()
             {
@@ -379,6 +475,10 @@ namespace MedicalExamination.Controllers
             {
                 return BadRequest(new { Message = "EndShift is missing!" });
             }
+            if(UsernameExists(doctor.Username))
+            {
+                return BadRequest(new { Message = "Username already exists!" });
+            }
             var dboDoctor = new DboDoctor()
             {
                 Name = doctor.Name,
@@ -410,7 +510,14 @@ namespace MedicalExamination.Controllers
             }
             return Ok(new { Message = "Doctor registered successfully." });
         }
-        #endregion Admin
+
+        private bool UsernameExists(string? username)
+        {
+            if (username.IsNullOrEmpty()) return true;
+            if (_context.DboSecrets.Any(s => s.Username == username)) return true;
+            return false;
+        }
+        #endregion Public
 
         private bool IsValidTimeSlot(DateTime dateTime)
         {
